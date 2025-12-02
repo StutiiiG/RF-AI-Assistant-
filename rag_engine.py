@@ -5,6 +5,7 @@ from sentence_transformers import SentenceTransformer
 import faiss
 import streamlit as st 
 import numpy as np
+import re 
 
 class RFAssistant:
     """
@@ -206,26 +207,63 @@ Answer:"""
             print(f"Error calling GPT-4: {e}")
             return self._generate_basic_answer(question, sources)
     
-    def _generate_basic_answer(self, question: str, sources: List[dict]) -> str:
-        """Fallback: Generate structured answer without GPT"""
-        answer = f"**Based on the retrieved technical documents:**\n\n"
+    # def _generate_basic_answer(self, question: str, sources: List[dict]) -> str:
+    #     """Fallback: Generate structured answer without GPT"""
+    #     answer = f"**Based on the retrieved technical documents:**\n\n"
         
-        # Summarize key findings from each source
-        for i, source in enumerate(sources, 1):
-            # Extract first ~300 characters as summary
-            excerpt = source['content'][:400].strip()
-            if len(source['content']) > 400:
-                # Try to end at a sentence
-                last_period = excerpt.rfind('.')
-                if last_period > 200:
-                    excerpt = excerpt[:last_period + 1]
-                else:
-                    excerpt += "..."
+    #     # Summarize key findings from each source
+    #     for i, source in enumerate(sources, 1):
+    #         # Extract first ~300 characters as summary
+    #         excerpt = source['content'][:400].strip()
+    #         if len(source['content']) > 400:
+    #             # Try to end at a sentence
+    #             last_period = excerpt.rfind('.')
+    #             if last_period > 200:
+    #                 excerpt = excerpt[:last_period + 1]
+    #             else:
+    #                 excerpt += "..."
             
-            answer += f"**From {source['document']}** (Relevance: {source['score']:.0%}):\n"
-            answer += f"{excerpt}\n\n"
+    #         answer += f"**From {source['document']}** (Relevance: {source['score']:.0%}):\n"
+    #         answer += f"{excerpt}\n\n"
         
-        answer += f"""---
+    #     answer += f"""---
+
+        def _generate_basic_answer(self, question: str, sources: List[dict]) -> str:
+        """
+        Fallback: Generate a readable, structured answer without GPT.
+        Focus on explaining the question, not on meta-info about retrieval.
+        """
+        # Collect a few key sentences from each source
+        key_points = []
+        for source in sources:
+            text = source["content"].strip().replace("\n", " ")
+            # Split into sentences
+            sentences = re.split(r'(?<=[.!?])\s+', text)
+            # Take the first 1–2 sentences as the "essence" of that chunk
+            snippet = " ".join(sentences[:2]).strip()
+            if snippet:
+                key_points.append(snippet)
+
+        # Build answer markdown
+        answer = f"### Explanation\n\n"
+        answer += f"Here’s a concise explanation of **{question}** based on the technical documents:\n\n"
+
+        if key_points:
+            answer += "**Key points:**\n\n"
+            for i, pt in enumerate(key_points, 1):
+                answer += f"{i}. {pt}\n\n"
+
+        # Short summary paragraph
+        if key_points:
+            summary_base = " ".join(key_points[:3])
+            answer += "### Short Summary\n\n"
+            answer += summary_base
+        else:
+            # Fallback if for some reason we didn't get any text
+            answer += "The retrieved documents did not contain enough clear information to generate a detailed answer."
+
+        return answer
+
 
 **Summary:**  
 The above excerpts from Apple RF patents and 5G research papers provide technical context related to: *"{question}"*
