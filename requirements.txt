@@ -1,0 +1,8 @@
+streamlit>=1.45.0
+pypdf>=6.4.0
+sentence-transformers>=5.1.0
+faiss-cpu>=1.13.0
+python-dotenv>=1.1.0
+openai>=2.8.0
+numpy>=2.0.0
+torch>=2.8.0
