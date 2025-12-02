@@ -3,6 +3,7 @@ from typing import List, Tuple
 from pypdf import PdfReader
 from sentence_transformers import SentenceTransformer
 import faiss
+import streamlit as st 
 import numpy as np
 
 class RFAssistant:
@@ -21,23 +22,54 @@ class RFAssistant:
         self.index = None
         
         # Initialize OpenAI client if GPT is enabled
+        self.openai_client = None
         if self.use_gpt:
             try:
                 from openai import OpenAI
-                # Try to get API key from environment variable
-                api_key = os.getenv('OPENAI_API_KEY')
+                api_key = st.secrets.get("OPENAI_API_KEY", None)
                 if api_key:
                     self.openai_client = OpenAI(api_key=api_key)
                     print("✓ GPT-4 enabled for natural language generation")
                 else:
-                    print("⚠ No OpenAI API key found. Using basic summarization.")
-                    print("  Set OPENAI_API_KEY environment variable to enable GPT-4.")
+                    print("⚠ No OPENAI_API_KEY found in Streamlit secrets. Falling back to basic summarization.")
                     self.use_gpt = False
-                    self.openai_client = None
-            except ImportError:
-                print("⚠ OpenAI library not installed. Using basic summarization.")
+            except Exception as e:
+                print(f"⚠ Could not initialize OpenAI client ({e}). Falling back to basic summarization.")
                 self.use_gpt = False
-                self.openai_client = None
+
+# class RFAssistant:
+#     """
+#     Enhanced RAG system with GPT-4 integration for natural language answers.
+#     """
+    
+#     def __init__(self, documents_folder: str = "documents", use_gpt: bool = True):
+#         self.documents_folder = documents_folder
+#         self.documents = []
+#         self.doc_names = []
+#         self.use_gpt = use_gpt
+        
+#         print("Loading sentence transformer model...")
+#         self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+#         self.index = None
+        
+#         # Initialize OpenAI client if GPT is enabled
+#         if self.use_gpt:
+#             try:
+#                 from openai import OpenAI
+#                 # Try to get API key from environment variable
+#                 api_key = os.getenv('OPENAI_API_KEY')
+#                 if api_key:
+#                     self.openai_client = OpenAI(api_key=api_key)
+#                     print("✓ GPT-4 enabled for natural language generation")
+#                 else:
+#                     print("⚠ No OpenAI API key found. Using basic summarization.")
+#                     print("  Set OPENAI_API_KEY environment variable to enable GPT-4.")
+#                     self.use_gpt = False
+#                     self.openai_client = None
+#             except ImportError:
+#                 print("⚠ OpenAI library not installed. Using basic summarization.")
+#                 self.use_gpt = False
+#                 self.openai_client = None
         
     def load_documents(self):
         """Read all PDFs from the documents folder"""

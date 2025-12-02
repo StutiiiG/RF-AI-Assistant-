@@ -117,7 +117,7 @@ st.markdown("""
 # Initialize assistant
 @st.cache_resource(show_spinner=False)
 def load_assistant():
-    assistant = RFAssistant(documents_folder="documents")
+    assistant = RFAssistant(documents_folder="documents", use_gpt=True)
     assistant.load_documents()
     return assistant
 
