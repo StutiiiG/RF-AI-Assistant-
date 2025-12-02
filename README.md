@@ -143,24 +143,6 @@ Your app will be live at: `https://rf-assistant-yourusername.streamlit.app`
 
 ---
 
-## 💡 Tips for Demo
-
-### For Live Demo:
-1. Start with a simple question: "What are 5G antenna challenges?"
-2. Show the speed: Point out 2-second response time
-3. Click on sources: Demonstrate citation tracking
-4. Try example questions: Use sidebar buttons
-5. Show export: Download results as proof of concept
-
-### For Video Demo:
-1. **Problem** (15 sec): "RF engineers search thousands of docs manually"
-2. **Solution** (15 sec): "AI assistant finds answers instantly"
-3. **Demo** (60 sec): Ask 2-3 questions, show sources
-4. **Impact** (15 sec): "Save hundreds of hours per quarter"
-5. **Call to Action** (15 sec): "Ready to revolutionize Apple's RF workflow"
-
----
-
 ## 🐛 Troubleshooting
 
 ### "No module named 'streamlit'"
@@ -202,12 +184,6 @@ streamlit run app.py  # ✅ Correct
 📧 stutig@uw.edu  
 💼 [LinkedIn](https://linkedin.com/in/stuti-gaonkar)  
 🐙 [GitHub](https://github.com/StutiiiG)
-
----
-
-## 📜 License
-
-This project is for demonstration purposes for Apple System RF Team recruitment.
 
 ---
 
