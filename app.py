@@ -199,7 +199,7 @@ if search and user_q.strip():
             </div>
             <div style='font-size: 48px; color: #ffffff;'>→</div>
             <div>
-                <p style='font-size: 32px; font-weight: 700; color: #34C759; margin: 0;'>~10 sec</p>
+                <p style='font-size: 32px; font-weight: 700; color: #34C759; margin: 0;'>~2 sec</p>
                 <p style='color: rgba(255,255,255,0.85); margin-top: 5px;'>AI-Powered Search</p>
             </div>
         </div>
