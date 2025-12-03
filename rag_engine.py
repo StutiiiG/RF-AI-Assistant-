@@ -17,24 +17,27 @@ class RFAssistant:
     2. Split into overlapping text chunks
     3. Embed chunks with SentenceTransformers
     4. Build / load a FAISS index for fast semantic search
-    5. Use GPT (via OpenAI) to synthesize high-quality answers
+    5. Use GPT (via OpenAI) to synthesize answers, or a high-quality fallback
     """
 
     def __init__(self, documents_folder: str = "documents", use_gpt: bool = True):
         self.documents_folder = documents_folder
+        self.use_gpt = use_gpt
+
+        # Text chunks + source filenames
         self.documents: List[str] = []
         self.doc_names: List[str] = []
-        self.index = None
 
-        self.use_gpt = use_gpt
+        # Where we cache the index + metadata
         self.index_path = os.path.join(self.documents_folder, "rf_index.faiss")
         self.meta_path = os.path.join(self.documents_folder, "rf_meta.pkl")
 
-        # Embedding model (fast + good quality)
-        print("Loading sentence transformer model...")
+        # Embedding model (loaded once per process)
+        print("RF Assistant: loading SentenceTransformer model (all-MiniLM-L6-v2)...")
         self.embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+        self.index: faiss.Index = None  # type: ignore
 
-        # OpenAI client for answer generation
+        # OpenAI client
         self.openai_client = None
         if self.use_gpt:
             try:
@@ -43,12 +46,15 @@ class RFAssistant:
                 api_key = os.getenv("OPENAI_API_KEY")
                 if api_key:
                     self.openai_client = OpenAI(api_key=api_key)
-                    print("✓ GPT enabled for RF answer generation")
+                    print("RF Assistant: GPT enabled (OPENAI_API_KEY found).")
                 else:
-                    print("⚠ OPENAI_API_KEY not found. Falling back to basic summarization.")
+                    print(
+                        "RF Assistant: no OPENAI_API_KEY found – running in fallback "
+                        "summarization mode."
+                    )
                     self.use_gpt = False
             except Exception as e:
-                print(f"⚠ Could not initialize OpenAI client: {e}")
+                print(f"RF Assistant: failed to init OpenAI client – {e}")
                 self.use_gpt = False
 
     # ------------------------------------------------------------------ #
@@ -56,48 +62,55 @@ class RFAssistant:
     # ------------------------------------------------------------------ #
     def load_documents(self) -> None:
         """
-        Load PDFs and build (or load) the FAISS index.
+        Load PDFs and build or load the FAISS index.
+
+        Fast path: if rf_index.faiss + rf_meta.pkl exist, just load them.
+        Slow path: read PDFs, build embeddings, build index, then save.
         """
-        # Fast path: load pre-built index if present
+        # Fast path – use the prebuilt index if present
         if os.path.exists(self.index_path) and os.path.exists(self.meta_path):
-            print("Found existing FAISS index. Loading from disk...")
+            print("RF Assistant: found existing FAISS index – loading from disk...")
             self._load_index_from_disk()
             return
 
+        # Slow path – build index from PDFs
         if not os.path.isdir(self.documents_folder):
             raise ValueError(f"Documents folder not found: {self.documents_folder}")
 
+        print(f"RF Assistant: building index from PDFs in '{self.documents_folder}'...")
         pdf_files = [
             f
             for f in os.listdir(self.documents_folder)
             if f.lower().endswith(".pdf")
         ]
+
         if not pdf_files:
-            raise ValueError(f"No PDF files found in {self.documents_folder}")
+            raise ValueError(
+                f"No PDF files found in {self.documents_folder}! "
+                "Place your RF PDFs there."
+            )
 
-        print(f"Building index from {len(pdf_files)} PDF files...")
-
+        print(f"RF Assistant: found {len(pdf_files)} PDF files.")
         for pdf_file in pdf_files:
-            path = os.path.join(self.documents_folder, pdf_file)
-            print(f"  Processing {pdf_file}...")
+            file_path = os.path.join(self.documents_folder, pdf_file)
+            print(f"  ↳ Reading {pdf_file}...")
             try:
-                reader = PdfReader(path)
+                reader = PdfReader(file_path)
                 text = ""
                 for page in reader.pages:
                     page_text = page.extract_text() or ""
                     text += page_text + "\n"
 
                 chunks = self._split_into_chunks(text, chunk_size=500)
-
                 for chunk in chunks:
                     self.documents.append(chunk)
                     self.doc_names.append(pdf_file)
 
-                print(f"    ✓ Extracted {len(chunks)} chunks")
+                print(f"    ✓ extracted {len(chunks)} chunks.")
             except Exception as e:
-                print(f"    ✗ Error reading {pdf_file}: {e}")
+                print(f"    ✗ error reading {pdf_file}: {e}")
 
-        print(f"\nTotal chunks loaded: {len(self.documents)}")
+        print(f"RF Assistant: total chunks loaded: {len(self.documents)}")
         self._build_index()
         self._save_index_to_disk()
 
@@ -111,7 +124,7 @@ class RFAssistant:
 
         for i in range(0, len(words), chunk_size - overlap):
             chunk = " ".join(words[i : i + chunk_size])
-            if len(chunk.strip()) > 50:  # skip tiny fragments
+            if len(chunk.strip()) > 50:  # skip very short chunks
                 chunks.append(chunk)
 
         return chunks
@@ -123,41 +136,56 @@ class RFAssistant:
         if not self.documents:
             raise ValueError("No documents loaded; cannot build index.")
 
-        print("Building FAISS index (first run only)...")
+        print(
+            "RF Assistant: building FAISS search index (this is only slow on first run)..."
+        )
+
         embeddings = self.embedding_model.encode(
             self.documents, show_progress_bar=True, convert_to_numpy=True
         )
 
-        dim = embeddings.shape[1]
-        index = faiss.IndexFlatL2(dim)
-        index.add(embeddings.astype("float32"))
+        dimension = embeddings.shape[1]
+        self.index = faiss.IndexFlatL2(dimension)
+        self.index.add(embeddings.astype("float32"))
 
-        self.index = index
-        print(f"✓ Index built with {self.index.ntotal} chunks")
+        print(f"RF Assistant: index built with {self.index.ntotal} chunks.")
 
     def _save_index_to_disk(self) -> None:
+        """
+        Save FAISS index + metadata so Streamlit Cloud does not have to rebuild.
+        """
         if self.index is None:
             raise ValueError("Index not built; cannot save.")
-        print("Saving FAISS index and metadata...")
+
+        print("RF Assistant: saving FAISS index + metadata to disk...")
         faiss.write_index(self.index, self.index_path)
+
         meta = {"documents": self.documents, "doc_names": self.doc_names}
         with open(self.meta_path, "wb") as f:
             pickle.dump(meta, f)
-        print("✓ Index + metadata saved")
+
+        print(f"RF Assistant: saved index -> {self.index_path}")
+        print(f"RF Assistant: saved meta  -> {self.meta_path}")
 
     def _load_index_from_disk(self) -> None:
-        print("Loading FAISS index + metadata from disk...")
+        """
+        Load FAISS index + metadata that were previously saved.
+        """
+        print("RF Assistant: loading FAISS index + metadata from disk...")
         self.index = faiss.read_index(self.index_path)
+
         with open(self.meta_path, "rb") as f:
             meta = pickle.load(f)
+
         self.documents = meta["documents"]
         self.doc_names = meta["doc_names"]
-        print(f"✓ Loaded index with {self.index.ntotal} chunks")
+
+        print(f"RF Assistant: loaded index with {self.index.ntotal} chunks.")
 
     # ------------------------------------------------------------------ #
     # Search
     # ------------------------------------------------------------------ #
-    def search_documents(self, query: str, top_k: int = 4) -> List[dict]:
+    def search_documents(self, query: str, top_k: int = 3) -> List[dict]:
         """
         Semantic search over the indexed RF chunks.
 
@@ -169,15 +197,15 @@ class RFAssistant:
         if self.index is None:
             raise ValueError("Search index not built or loaded.")
 
-        query_emb = self.embedding_model.encode(
+        query_embedding = self.embedding_model.encode(
             [query], convert_to_numpy=True
         ).astype("float32")
 
-        distances, indices = self.index.search(query_emb, top_k)
+        distances, indices = self.index.search(query_embedding, top_k)
 
         results: List[dict] = []
-        for idx, dist in zip(indices[0], distances[0]):
-            similarity = float(1.0 / (1.0 + dist))
+        for idx, distance in zip(indices[0], distances[0]):
+            similarity = float(1.0 / (1.0 + distance))
             results.append(
                 {
                     "content": self.documents[idx],
@@ -185,19 +213,18 @@ class RFAssistant:
                     "score": similarity,
                 }
             )
-
         return results
 
     # ------------------------------------------------------------------ #
-    # Question Answering
+    # Question answering
     # ------------------------------------------------------------------ #
     def answer_question(self, question: str) -> Tuple[str, List[dict]]:
         """
         End-to-end QA: retrieve relevant chunks, then generate the answer.
         """
-        sources = self.search_documents(question, top_k=4)
+        sources = self.search_documents(question, top_k=3)
 
-        if self.use_gpt and self.openai_client is not None:
+        if self.use_gpt and self.openai_client:
             answer = self._generate_gpt_answer(question, sources)
         else:
             answer = self._generate_basic_answer(question, sources)
@@ -210,11 +237,11 @@ class RFAssistant:
         """
         if not sources:
             return (
-                "I couldn't find relevant content in the indexed RF documents for this "
+                "I couldn’t find relevant content in the indexed RF documents for this "
                 "question. Try rephrasing it or narrowing the scope."
             )
 
-        # Keep context short for speed and clarity
+        # Short, cleaned snippets for speed + readability
         def short(text: str, max_chars: int = 900) -> str:
             t = " ".join(text.split())
             if len(t) <= max_chars:
@@ -241,30 +268,33 @@ You are a senior RF engineer at a top smartphone company.
 User question:
 {question}
 
-Relevant technical excerpts from internal patents / papers:
+Relevant technical excerpts from internal patents / RF papers:
 {context}
 
-Write an answer with the following structure (Markdown):
+Write your answer in **Markdown** with this exact structure:
 
-1. Start with a short 2–3 sentence overview in plain language.
-2. Then add a section **“Key technical points”** with 4–7 numbered bullets.
-   - Use concrete RF details where available (frequencies, bandwidths, materials, array spacing, feed networks, SAR / regulatory limits, etc.).
-   - Emphasize design trade-offs and implications for real hardware (handsets, base stations, mmWave arrays).
-   - When a detail clearly comes from a specific excerpt, mention the document name in parentheses.
-3. Finish with a brief **“Practical takeaway”** (2–3 sentences) summarizing what an RF engineer should remember.
+### Answer
+
+1. Start with a single paragraph (2–4 sentences) that explains the idea in plain language for an RF engineer.
+
+2. Add a section titled **Key technical points** and give 4–7 numbered bullet points. For each bullet:
+   - Start with a short bold title (e.g. **Array spacing and grating lobes**).
+   - Then 2–3 sentences with concrete technical details (frequencies, bandwidths, materials, array geometry, feed network, SAR / regulatory constraints, etc.).
+   - Where appropriate, mention the source in parentheses, e.g. *(Source 2, phased-array panel patent)*.
+
+3. Finish with a section titled **Practical takeaway** with 2–3 sentences summarizing what an RF engineer designing real hardware (handset, base station, mmWave module) should remember.
 
 Constraints:
-- Aim for roughly 250–500 words (not a wall of text, not too short).
-- Be precise, technical, and readable.
-- Do NOT simply list the sources; synthesize them into a coherent explanation.
+- Length: roughly 250–450 words (not a wall of text, not too short).
+- Do **not** copy sentences verbatim from the sources; rewrite them in clean, modern technical English.
+- Focus only on what is actually supported by the sources; if something isn’t in the documents, keep it general.
 """
 
         try:
             response = self.openai_client.chat.completions.create(
-                # For more quality (slightly slower), you can change to "gpt-4o"
-                model="gpt-4o",
-                temperature=0.3,      # more deterministic and technical
-                max_tokens=550,        # keeps latency reasonable
+                model="gpt-4o",  # you can switch to gpt-4o-mini if you want faster/cheaper
+                temperature=0.3,
+                max_tokens=650,
                 messages=[
                     {
                         "role": "system",
@@ -278,52 +308,65 @@ Constraints:
             )
             return response.choices[0].message.content
         except Exception as e:
-            print(f"⚠ Error calling GPT: {e}")
+            print(f"RF Assistant: error calling GPT – {e}")
             return self._generate_basic_answer(question, sources)
 
     def _generate_basic_answer(self, question: str, sources: List[dict]) -> str:
         """
-        Fallback summarization if GPT is not available.
+        Fallback if GPT is unavailable.
+
+        Produces a structured, readable answer summarizing the top chunks.
         """
         if not sources:
             return (
-                "I couldn't find relevant content in the indexed RF documents for this "
+                "I couldn’t find relevant content in the indexed RF documents for this "
                 "question. Try rephrasing it or narrowing the scope."
             )
 
-        def clean_excerpt(text: str, max_chars: int = 400) -> str:
+        def clean_excerpt(text: str, max_chars: int = 450) -> str:
             t = " ".join(text.split())
             if len(t) <= max_chars:
                 return t
-            t = t[:max_chars]
-            last_dot = t.rfind(".")
+            snippet = t[:max_chars]
+            last_dot = snippet.rfind(".")
             if last_dot > 200:
-                t = t[: last_dot + 1]
+                snippet = snippet[: last_dot + 1]
             else:
-                t += "..."
-            return t
+                snippet += "..."
+            return snippet
 
-        bullets = []
+        overview_points: List[str] = []
+        bullet_points: List[str] = []
+
         for src in sources:
-            bullets.append(
-                f"- **{src['document']}** (~{src['score']*100:.0f}% match): "
-                f"{clean_excerpt(src['content'])}"
+            excerpt = clean_excerpt(src["content"])
+            bullet_points.append(
+                f"- From **{src['document']}** (~{src['score']*100:.0f}% match): {excerpt}"
             )
+            overview_points.append(excerpt)
 
-        answer = [
-            "### Explanation",
-            f"Here’s a synthesized explanation of **{question}** based on the indexed RF documents.\n",
-            "**Key technical evidence (summarized):**",
-            *bullets,
-            "",
-            "> These points are extracted directly from the RF PDFs. "
-            "Enable the OpenAI API to get a more polished, narrative answer.",
-        ]
-        return "\n".join(answer)
+        answer_parts: List[str] = []
+        answer_parts.append("### Answer\n")
+        answer_parts.append(
+            f"Here’s a synthesized explanation of **{question}** based on the retrieved RF patents and papers:\n"
+        )
+
+        if overview_points:
+            answer_parts.append("**High-level view:**")
+            answer_parts.append(overview_points[0] + "\n")
+
+        answer_parts.append("**Key technical evidence from the documents:**")
+        answer_parts.extend(bullet_points)
+        answer_parts.append(
+            "\n> These points are extracted directly from the indexed RF documents. "
+            "For a more polished narrative answer, enable GPT via the OpenAI API key."
+        )
+
+        return "\n".join(answer_parts)
 
 
 if __name__ == "__main__":
-    # Optional: build index locally
+    # Utility: run locally to (re)build the FAISS index if needed
     print("=" * 80)
     print("Building RF FAISS index from local PDFs...")
     print("=" * 80)
