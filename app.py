@@ -1,6 +1,3 @@
-
-import streamlit as st
-
 import os
 import time
 from datetime import datetime
@@ -9,17 +6,9 @@ import streamlit as st
 
 from rag_engine import RFAssistant
 
-# Page configuration
-
-# --------------------------------------------------------------------- #
-# Configure OpenAI key from Streamlit secrets (so rag_engine sees it)
-# --------------------------------------------------------------------- #
+# Configure OpenAI key from Streamlit secrets
 if "OPENAI_API_KEY" in st.secrets:
     os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
-
-# --------------------------------------------------------------------- #
-# Page configuration
-# --------------------------------------------------------------------- #
 
 st.set_page_config(
     page_title="RF Engineering AI Assistant",
@@ -28,36 +17,18 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-
-# Custom CSS - Clean purple theme on dark background
 st.markdown(
     """
 <style>
     .stApp {
         background-color: #0E0E0E;
     }
-    
-#     /* Headers */
-# # --------------------------------------------------------------------- #
-# # Custom CSS (your existing purple/dark theme)
-# # --------------------------------------------------------------------- #
-# st.markdown(
-#     """
-# <style>
-#     .stApp {
-#         background-color: #0E0E0E;
-#     }
-
 
     h1, h2, h3 {
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         font-weight: 600;
         color: #FFFFFF;
     }
-
-    
-    /* Buttons - Purple gradient */
-
 
     .stButton>button {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -71,14 +42,12 @@ st.markdown(
         box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
     }
 
-    
-
     .stButton>button:hover {
         transform: translateY(-2px);
         box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
         background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
     }
-    
+
     .stTextArea textarea {
         background-color: #1A1A1A;
         border-radius: 12px;
@@ -93,36 +62,26 @@ st.markdown(
         box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
     }
 
-
-    # .stSuccess {
-    #     background-color: rgba(102, 126, 234, 0.1);
-    #     border-left: 4px solid #667eea;
-    #     border-radius: 8px;
-    #     color: #FFFFFF;
-    # }
-    
-    /* Sidebar */
     [data-testid="stSidebar"] {
         background-color: #1A1A1A;
     }
-    
-     [data-testid="stMetricValue"] {
+
+    [data-testid="stMetricValue"] {
         font-size: 28px;
         font-weight: 600;
         color: #667eea;
     }
-    
+
     [data-testid="stMetricLabel"] {
         color: #AAAAAA;
     }
-    
+
     .streamlit-expanderHeader {
         background-color: #1A1A1A;
         border-radius: 8px;
         font-weight: 600;
         color: #FFFFFF;
     }
-
 
     .answer-box {
         background-color: #1A1A1A;
