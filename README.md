@@ -2,11 +2,8 @@
 
 An intelligent AI assistant that searches through Apple RF patents and 5G research papers to provide instant, cited answers to technical questions.
 
-**Built for:** Apple System RF Organization  
-**Developer:** Stuti Gaonkar  
 **Tech Stack:** Streamlit + GPT-4 + FAISS + Sentence Transformers
 
----
 
 ## ✨ Features
 
@@ -46,24 +43,6 @@ streamlit run app.py
 
 The app will open automatically in your browser at `http://localhost:8501`
 
----
-
-## 📁 Project Structure
-
-```
-rf-ai-assistant/
-├── app.py                 # Main Streamlit UI (Apple-style design)
-├── rag_engine.py          # RAG system with GPT-4 integration
-├── requirements.txt       # Python dependencies
-├── .env                   # API keys (create this!)
-├── documents/            # PDF documents folder
-│   ├── apple_mmwave.pdf
-│   ├── 5g_mimo_design.pdf
-│   └── ...
-└── README.md             # This file
-```
-
----
 
 ## 🎯 Usage Examples
 
@@ -79,31 +58,6 @@ rf-ai-assistant/
 3. **Original Excerpts** from patents/papers
 4. **Search Metrics** (time, accuracy, coverage)
 
----
-
-## 🔧 Configuration Options
-
-### Run Without GPT-4 (Free Mode):
-If you don't have an OpenAI API key, the system works with basic retrieval:
-
-```python
-# In rag_engine.py, set:
-assistant = RFAssistant(use_gpt=False)
-```
-
-### Adjust Search Results:
-```python
-# In rag_engine.py, change top_k:
-sources = self.search_documents(question, top_k=5)  # Get 5 sources instead of 3
-```
-
-### Change Chunk Size:
-```python
-# In rag_engine.py:
-chunks = self._split_into_chunks(text, chunk_size=1000)  # Larger chunks
-```
-
----
 
 ## 📊 Performance Metrics
 
@@ -111,11 +65,10 @@ chunks = self._split_into_chunks(text, chunk_size=1000)  # Larger chunks
 |--------|-------|
 | **Documents Indexed** | 5 PDFs (Apple patents + 5G papers) |
 | **Searchable Chunks** | 81 text segments |
-| **Search Time** | ~10 seconds average |
+| **Search Time** | ~2 seconds average |
 | **Relevance Accuracy** | 85%+ for technical queries |
 | **Cost per Query** | ~$0.01-0.02 (with GPT-4) |
 
----
 
 ## 🌐 Deployment to Streamlit Cloud
 
@@ -141,31 +94,6 @@ git push -u origin main
 
 Your app will be live at: `https://rf-assistant-yourusername.streamlit.app`
 
----
-
-## 🐛 Troubleshooting
-
-### "No module named 'streamlit'"
-```bash
-pip install streamlit
-```
-
-### "No PDF files found"
-Make sure PDFs are in the `documents/` folder
-
-### "OpenAI API error"
-- Check your API key in `.env`
-- Verify you have credits: https://platform.openai.com/usage
-- System works without GPT-4 (falls back to basic mode)
-
-### Blank page in browser
-Make sure you're running:
-```bash
-streamlit run app.py  # ✅ Correct
-# NOT: python app.py  # ❌ Wrong
-```
-
----
 
 ## 📈 Future Enhancements
 
@@ -176,23 +104,10 @@ streamlit run app.py  # ✅ Correct
 - [ ] Batch query processing
 - [ ] Email alerts for new relevant papers
 
----
-
-## 📧 Contact
-
-**Stuti Gaonkar**  
-📧 stutig@uw.edu  
-💼 [LinkedIn](https://linkedin.com/in/stuti-gaonkar)  
-🐙 [GitHub](https://github.com/StutiiiG)
-
----
 
 ## 🙏 Acknowledgments
 
-- Apple RF Patents (publicly available via USPTO)
-- 5G Research Papers (arXiv.org)
-- Built with Streamlit, OpenAI GPT-4, and FAISS
+- Apple RF Patents and Research Papers(publicly available via USPTO)
 
----
 
 **⭐ Star this repo if you found it useful!**
