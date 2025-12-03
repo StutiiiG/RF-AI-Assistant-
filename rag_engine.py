@@ -199,44 +199,7 @@ Answer:"""
             print(f"Error calling GPT-4: {e}")
             return self._generate_basic_answer(question, sources)
 
-    # def _generate_basic_answer(self, question: str, sources: List[dict]) -> str:
-    #     """
-    #     Fallback: Generate a readable, structured answer without GPT.
-    #     Focus on explaining the question, not on meta-info about retrieval.
-    #     """
-    #     key_points: List[str] = []
-
-    #     # Collect a few key sentences from each source
-    #     for source in sources:
-    #         text = source["content"].strip().replace("\n", " ")
-    #         sentences = re.split(r"(?<=[.!?])\s+", text)
-    #         snippet = " ".join(sentences[:2]).strip()  # first 1–2 sentences
-    #         if snippet:
-    #             key_points.append(snippet)
-
-    #     answer = "### Explanation\n\n"
-    #     answer += (
-    #         f"Here’s a concise explanation of **{question}** based on the "
-    #         "technical documents:\n\n"
-    #     )
-
-    #     if key_points:
-    #         answer += "**Key points:**\n\n"
-    #         for i, pt in enumerate(key_points, 1):
-    #             answer += f"{i}. {pt}\n\n"
-
-    #         summary_base = " ".join(key_points[:3])
-    #         answer += "### Short Summary\n\n"
-    #         answer += summary_base
-    #     else:
-    #         answer += (
-    #             "The retrieved documents did not contain enough clear "
-    #             "information to generate a detailed answer."
-    #         )
-
-    #     return answer
-
-        def _generate_basic_answer(self, question: str, sources: List[dict]) -> str:
+    def _generate_basic_answer(self, question: str, sources: List[dict]) -> str:
         """
         Fallback: Generate a readable, structured answer without GPT.
         Focus on explaining the question, not dumping equations.
@@ -291,4 +254,3 @@ Answer:"""
             )
 
         return answer
-
