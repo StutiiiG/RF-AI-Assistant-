@@ -33,7 +33,7 @@ class RFAssistant:
                 # Try to get API key from environment variable
                 api_key = os.getenv('OPENAI_API_KEY')
                 if api_key:
-                    self.openai_client = OpenAI(api_key=api_key)
+                    self.openai_client = OpenAI(api_key="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")
                     print("✓ GPT-4 enabled for natural language generation")
                 else:
                     print("⚠ No OpenAI API key found. Using basic summarization.")
@@ -296,4 +296,4 @@ if __name__ == "__main__":
     print("TEST COMPLETE")
     print("="*80)
 
-    
+
