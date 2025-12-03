@@ -7,7 +7,7 @@ from rag_engine import RFAssistant
 # Page configuration
 st.set_page_config(
     page_title="RF Engineering AI Assistant",
-    page_icon="",
+    page_icon="📡",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -130,7 +130,7 @@ if 'query_history' not in st.session_state:
 st.markdown("""
 <div style='text-align: center; padding: 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
             border-radius: 16px; margin-bottom: 30px;'>
-    <h1 style='color: white; margin: 0; font-size: 42px;'>📡 RF Engineering AI Assistant</h1>
+    <h1 style='color: white; margin: 0; font-size: 42px;'> RF Engineering AI Assistant</h1>
     <p style='color: rgba(255,255,255,0.95); font-size: 18px; margin-top: 10px;'>
         Instant answers from Apple patents and 5G research papers
     </p>
@@ -147,7 +147,7 @@ def load_assistant():
 with st.spinner(" Initializing AI Assistant..."):
     try:
         assistant = load_assistant()
-        st.success(" System ready! Loaded 81 document chunks from Apple RF patents and 5G research papers.")
+        #st.success(" System ready!")
     except Exception as e:
         st.error(f" Error loading documents: {str(e)}")
         st.info(" Make sure you have PDF files in the 'documents' folder!")
@@ -155,7 +155,7 @@ with st.spinner(" Initializing AI Assistant..."):
 
 # Sidebar
 with st.sidebar:
-    st.markdown("### 💡 Example Questions")
+    st.markdown("###  Example Questions")
     
     example_questions = [
         "What are common causes of antenna interference in multi-band systems?",
@@ -168,28 +168,28 @@ with st.sidebar:
     ]
     
     for i, question in enumerate(example_questions):
-        if st.button(f"{question[:50]}...", key=f"example_{i}", use_container_width=True):
+        if st.button(f" {question[:50]}...", key=f"example_{i}", use_container_width=True):
             st.session_state.user_question = question
             st.rerun()
     
     st.markdown("---")
     
-    # System info
-    st.markdown("### System Statistics")
+    # # System info
+    # st.markdown("###  System Statistics")
     
-    col1, col2 = st.columns(2)
-    with col1:
-        st.metric("Documents", "5 PDFs")
-    with col2:
-        st.metric("Chunks", "81")
+    # col1, col2 = st.columns(2)
+    # with col1:
+    #     st.metric("Documents", "5 PDFs")
+    # with col2:
+    #     st.metric("Chunks", "81")
     
-    st.metric("Search Engine", "FAISS + GPT-4")
+    # st.metric("Search Engine", "FAISS + GPT-4")
     
-    st.markdown("---")
+    # st.markdown("---")
     
     # Query history
     if st.session_state.query_history:
-        st.markdown("### Recent Queries")
+        st.markdown("###  Recent Queries")
         for i, (q, t) in enumerate(reversed(st.session_state.query_history[-5:])):
             with st.expander(f"Query {len(st.session_state.query_history) - i}"):
                 st.text(q[:100] + "..." if len(q) > 100 else q)
@@ -206,7 +206,7 @@ with st.sidebar:
     """, unsafe_allow_html=True)
 
 # Main interface
-st.markdown("###  Ask Your Question")
+st.markdown("### Ask Your Question")
 
 user_question = st.text_area(
     "",
@@ -262,18 +262,18 @@ if search_button and user_question.strip():
         # Metrics
         metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
         with metric_col1:
-            st.metric(" Search Time", f"{search_time:.2f}s")
+            st.metric("Search Time", f"{search_time:.2f}s")
         with metric_col2:
-            st.metric(" Sources Found", len(sources))
+            st.metric("Sources Found", len(sources))
         with metric_col3:
-            st.metric(" Avg Relevance", f"{sum(s['score'] for s in sources) / len(sources):.0%}")
+            st.metric("Avg Relevance", f"{sum(s['score'] for s in sources) / len(sources):.0%}")
         with metric_col4:
-            st.metric(" Chunks Searched", "81")
+            st.metric("Chunks Searched", "81")
         
         st.markdown("---")
         
         # Answer - Dark box with purple accent
-        st.markdown("### 📝 Answer")
+        st.markdown("### Answer")
         st.markdown(f"""
         <div class='answer-box'>
             {answer}
@@ -283,7 +283,7 @@ if search_button and user_question.strip():
         st.markdown("---")
         
         # Sources
-        st.markdown("###  Sources & Citations")
+        st.markdown("### Sources & Citations")
         st.caption("Click to expand each source and view the original text")
         
         for i, source in enumerate(sources, 1):
@@ -295,7 +295,7 @@ if search_button and user_question.strip():
             else:
                 relevance_color = "#6c5ce7"
             
-            with st.expander(f" Source {i}: {source['document']} • Relevance: {source['score']:.0%}", expanded=(i==1)):
+            with st.expander(f"Source {i}: {source['document']} • Relevance: {source['score']:.0%}", expanded=False):
                 col1, col2 = st.columns([3, 1])
                 with col1:
                     st.markdown(f"**Document:** `{source['document']}`")
@@ -313,7 +313,7 @@ if search_button and user_question.strip():
         
         # Export
         st.markdown("---")
-        if st.button(" Export Results to Text File"):
+        if st.button("Export Results to Text File"):
             export_text = f"""RF ENGINEERING AI ASSISTANT - QUERY RESULTS
 {'='*80}
 
@@ -335,7 +335,7 @@ Content: {source['content']}
 """
             
             st.download_button(
-                label="💾 Download Results",
+                label="Download Results",
                 data=export_text,
                 file_name=f"rf_query_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
                 mime="text/plain"
@@ -356,7 +356,7 @@ st.markdown("""
 <div style='background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); 
             padding: 30px; border-radius: 16px; text-align: center; margin-top: 40px;
             border: 1px solid #667eea;'>
-    <h3 style='color: #FFFFFF; margin-bottom: 20px;'> Why This Matters</h3>
+    <h3 style='color: #FFFFFF; margin-bottom: 20px;'>⚡ Why This Matters</h3>
     <div style='display: flex; justify-content: space-around; margin-top: 20px;'>
         <div>
             <p style='font-size: 32px; font-weight: 700; color: #e74c3c; margin: 0;'>~45 min</p>
