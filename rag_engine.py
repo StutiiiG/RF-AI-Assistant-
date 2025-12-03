@@ -17,25 +17,24 @@ class RFAssistant:
     2. Split into overlapping text chunks
     3. Embed chunks with SentenceTransformers
     4. Build / load a FAISS index for fast semantic search
-    5. Use GPT (via OpenAI) to synthesize answers, or a high-quality fallback
+    5. Use GPT (via OpenAI) to synthesize answers, with a structured style
     """
 
     def __init__(self, documents_folder: str = "documents", use_gpt: bool = True):
         self.documents_folder = documents_folder
         self.use_gpt = use_gpt
 
-        # Text chunks + source filenames
+        # Text chunks + filenames
         self.documents: List[str] = []
         self.doc_names: List[str] = []
 
-        # Where we cache the index + metadata
+        # Cached index + metadata paths
         self.index_path = os.path.join(self.documents_folder, "rf_index.faiss")
         self.meta_path = os.path.join(self.documents_folder, "rf_meta.pkl")
 
-        # Embedding model (loaded once per process)
         print("RF Assistant: loading SentenceTransformer model (all-MiniLM-L6-v2)...")
         self.embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
-        self.index: faiss.Index = None  # type: ignore
+        self.index: faiss.Index | None = None  # type: ignore
 
         # OpenAI client
         self.openai_client = None
@@ -44,18 +43,16 @@ class RFAssistant:
                 from openai import OpenAI
 
                 api_key = os.getenv("OPENAI_API_KEY")
-                if api_key:
-                    self.openai_client = OpenAI(api_key=api_key)
-                    print("RF Assistant: GPT enabled (OPENAI_API_KEY found).")
-                else:
-                    print(
-                        "RF Assistant: no OPENAI_API_KEY found – running in fallback "
-                        "summarization mode."
-                    )
+                if not api_key:
+                    print("[RF Assistant] ❌ No OPENAI_API_KEY, disabling GPT answers")
                     self.use_gpt = False
+                else:
+                    self.openai_client = OpenAI(api_key=api_key)
+                    print("[RF Assistant] ✅ GPT answers ENABLED")
             except Exception as e:
-                print(f"RF Assistant: failed to init OpenAI client – {e}")
+                print(f"[RF Assistant] ❌ Could not init OpenAI client: {e}")
                 self.use_gpt = False
+                self.openai_client = None
 
     # ------------------------------------------------------------------ #
     # Document loading / indexing
@@ -137,7 +134,8 @@ class RFAssistant:
             raise ValueError("No documents loaded; cannot build index.")
 
         print(
-            "RF Assistant: building FAISS search index (this is only slow on first run)..."
+            "RF Assistant: building FAISS search index "
+            "(this is only slow on first run)..."
         )
 
         embeddings = self.embedding_model.encode(
@@ -275,24 +273,27 @@ Write your answer in **Markdown** with this exact structure:
 
 ### Answer
 
-1. Start with a single paragraph (2–4 sentences) that explains the idea in plain language for an RF engineer.
+Start with a short overview paragraph (2–4 sentences) explaining the idea in clear language for an RF engineer.
 
-2. Add a section titled **Key technical points** and give 4–7 numbered bullet points. For each bullet:
-   - Start with a short bold title (e.g. **Array spacing and grating lobes**).
-   - Then 2–3 sentences with concrete technical details (frequencies, bandwidths, materials, array geometry, feed network, SAR / regulatory constraints, etc.).
-   - Where appropriate, mention the source in parentheses, e.g. *(Source 2, phased-array panel patent)*.
+#### Key technical points
+Then give 4–7 numbered bullets. For each bullet:
+- Start with a short bold title (e.g. **Array spacing and grating lobes**).
+- Add 2–3 sentences with concrete technical details (frequencies, bandwidths, materials, array geometry, feed network, SAR / regulatory constraints, etc.).
+- Where appropriate, mention the source in parentheses, e.g. *(Source 2, phased-array panel patent)*.
 
-3. Finish with a section titled **Practical takeaway** with 2–3 sentences summarizing what an RF engineer designing real hardware (handset, base station, mmWave module) should remember.
+#### Practical takeaway
+Finish with 2–3 sentences summarizing what an RF / antenna engineer designing real hardware (handset, base station, mmWave module) should remember.
 
 Constraints:
-- Length: roughly 250–450 words (not a wall of text, not too short).
+- Length: ~250–450 words (not a wall of text, not too short).
 - Do **not** copy sentences verbatim from the sources; rewrite them in clean, modern technical English.
 - Focus only on what is actually supported by the sources; if something isn’t in the documents, keep it general.
 """
 
         try:
             response = self.openai_client.chat.completions.create(
-                model="gpt-4o",  # you can switch to gpt-4o-mini if you want faster/cheaper
+                # for more speed/cost efficiency, switch to "gpt-4o-mini"
+                model="gpt-4o",
                 temperature=0.3,
                 max_tokens=650,
                 messages=[
@@ -308,7 +309,7 @@ Constraints:
             )
             return response.choices[0].message.content
         except Exception as e:
-            print(f"RF Assistant: error calling GPT – {e}")
+            print(f"[RF Assistant] ⚠ Error calling GPT, falling back: {e}")
             return self._generate_basic_answer(question, sources)
 
     def _generate_basic_answer(self, question: str, sources: List[dict]) -> str:
@@ -348,7 +349,8 @@ Constraints:
         answer_parts: List[str] = []
         answer_parts.append("### Answer\n")
         answer_parts.append(
-            f"Here’s a synthesized explanation of **{question}** based on the retrieved RF patents and papers:\n"
+            f"Here’s a synthesized explanation of **{question}** "
+            "based on the retrieved RF patents and papers.\n"
         )
 
         if overview_points:
