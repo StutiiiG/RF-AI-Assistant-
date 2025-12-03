@@ -30,23 +30,23 @@ st.set_page_config(
 
 
 # Custom CSS - Clean purple theme on dark background
-st.markdown("""
-<style>
-    /* Dark theme with purple accents */
-    .stApp {
-        background-color: #0E0E0E;
-    }
-    
-    /* Headers */
-# --------------------------------------------------------------------- #
-# Custom CSS (your existing purple/dark theme)
-# --------------------------------------------------------------------- #
 st.markdown(
     """
 <style>
     .stApp {
         background-color: #0E0E0E;
     }
+    
+#     /* Headers */
+# # --------------------------------------------------------------------- #
+# # Custom CSS (your existing purple/dark theme)
+# # --------------------------------------------------------------------- #
+# st.markdown(
+#     """
+# <style>
+#     .stApp {
+#         background-color: #0E0E0E;
+#     }
 
 
     h1, h2, h3 {
@@ -79,7 +79,6 @@ st.markdown(
         background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
     }
     
-    /* Text area */
     .stTextArea textarea {
         background-color: #1A1A1A;
         border-radius: 12px;
@@ -89,36 +88,25 @@ st.markdown(
         padding: 12px;
     }
 
-    
-
     .stTextArea textarea:focus {
         border-color: #764ba2;
         box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
     }
 
-    
-    /* Success/Info messages */
-    .stSuccess {
-        background-color: rgba(102, 126, 234, 0.1);
-        border-left: 4px solid #667eea;
-        border-radius: 8px;
-        color: #FFFFFF;
-    }
+
+    # .stSuccess {
+    #     background-color: rgba(102, 126, 234, 0.1);
+    #     border-left: 4px solid #667eea;
+    #     border-radius: 8px;
+    #     color: #FFFFFF;
+    # }
     
     /* Sidebar */
     [data-testid="stSidebar"] {
         background-color: #1A1A1A;
     }
     
-    /* Metrics - Purple color */
-
-
-    [data-testid="stSidebar"] {
-        background-color: #1A1A1A;
-    }
-
-
-    [data-testid="stMetricValue"] {
+     [data-testid="stMetricValue"] {
         font-size: 28px;
         font-weight: 600;
         color: #667eea;
@@ -128,21 +116,6 @@ st.markdown(
         color: #AAAAAA;
     }
     
-    /* Expander */
-    .streamlit-expanderHeader {
-        background-color: #1A1A1A;
-        border-radius: 8px;
-        font-weight: 600;
-        color: #FFFFFF;
-    }
-    
-    /* Answer box - Dark with purple accent */
-    }
-
-    [data-testid="stMetricLabel"] {
-        color: #AAAAAA;
-    }
-
     .streamlit-expanderHeader {
         background-color: #1A1A1A;
         border-radius: 8px;
@@ -160,22 +133,10 @@ st.markdown(
         color: #FFFFFF;
     }
 
-    
-    /* Source boxes */
-
     .stExpander {
         background-color: #1A1A1A;
         border-radius: 8px;
     }
-
-    
-    /* Progress bar */
-    .stProgress > div > div > div {
-        background-color: #667eea;
-    }
-    
-    /* Info boxes */
-
 
     .stProgress > div > div > div {
         background-color: #667eea;
