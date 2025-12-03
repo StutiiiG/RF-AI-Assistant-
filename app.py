@@ -38,7 +38,6 @@ st.markdown("""
     }
     
     /* Headers */
-=======
 # --------------------------------------------------------------------- #
 # Custom CSS (your existing purple/dark theme)
 # --------------------------------------------------------------------- #
@@ -58,7 +57,6 @@ st.markdown(
 
     
     /* Buttons - Purple gradient */
-=======
 
 
     .stButton>button {
@@ -202,7 +200,7 @@ st.markdown("""
 <div style='text-align: center; padding: 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
             border-radius: 16px; margin-bottom: 30px;'>
     <h1 style='color: white; margin: 0; font-size: 42px;'> RF Engineering AI Assistant</h1>
-=======
+
 # --------------------------------------------------------------------- #
 # Session state
 # --------------------------------------------------------------------- #
@@ -267,9 +265,6 @@ with st.spinner(" Initializing AI Assistant..."):
 # --------------------------------------------------------------------- #
 with st.sidebar:
     st.markdown("###  Example Questions")
-<<<<<<< HEAD
-    
-=======
 
 
     example_questions = [
