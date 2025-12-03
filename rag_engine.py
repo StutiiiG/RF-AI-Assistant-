@@ -262,8 +262,8 @@ Constraints:
         try:
             response = self.openai_client.chat.completions.create(
                 # For more quality (slightly slower), you can change to "gpt-4o"
-                model="gpt-4o-mini",
-                temperature=0.35,      # more deterministic and technical
+                model="gpt-4o",
+                temperature=0.3,      # more deterministic and technical
                 max_tokens=550,        # keeps latency reasonable
                 messages=[
                     {
