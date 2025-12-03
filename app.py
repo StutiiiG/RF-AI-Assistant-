@@ -1,213 +1,375 @@
 import streamlit as st
+import os
 import time
 from datetime import datetime
 from rag_engine import RFAssistant
 
-# Page Configuration
+# Page configuration
 st.set_page_config(
     page_title="RF Engineering AI Assistant",
-    page_icon="📡",
+    page_icon="",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS
+# Custom CSS - Clean purple theme on dark background
 st.markdown("""
 <style>
-    :root {
-        --bg-black: #050505;
-        --bg-panel: #111111;
-        --bg-panel-soft: #18181b;
-        --text-main: #f9fafb;
-        --text-muted: #a1a1aa;
-        /* dimmer purple */
-        --accent-purple: #b794f4;
-        --accent-green: #22c55e;
+    /* Dark theme with purple accents */
+    .stApp {
+        background-color: #0E0E0E;
     }
-
-    body, .stApp, [data-testid="stAppViewContainer"] {
-        background-color: var(--bg-black);
-        color: var(--text-main);
-    }
-
-    h1, h2, h3, h4, h5 {
-        color: var(--accent-purple);
-        font-weight: 600;
-        letter-spacing: -0.5px;
+    
+    /* Headers */
+    h1, h2, h3 {
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-weight: 600;
+        color: #FFFFFF;
     }
-
-    .stMarkdown, p, label, .st-cq {
-        color: var(--text-main);
-    }
-
+    
+    /* Buttons - Purple gradient */
     .stButton>button {
-        background: var(--accent-purple);
-        color: var(--text-main);
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
         border: none;
         border-radius: 12px;
-        padding: 10px 26px;
+        padding: 12px 32px;
         font-weight: 600;
-        transition: .15s;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+        font-size: 16px;
+        transition: all 0.3s;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
     }
+    
     .stButton>button:hover {
-        transform: translateY(-1px);
-        filter: brightness(1.03);
-        box-shadow: 0 6px 14px rgba(0,0,0,0.6);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
     }
-
+    
+    /* Text area */
     .stTextArea textarea {
-        background: var(--bg-panel);
-        color: var(--text-main);
-        border: 1px solid #27272a;
-        border-radius: 10px;
+        background-color: #1A1A1A;
+        border-radius: 12px;
+        border: 2px solid #667eea;
+        color: #FFFFFF;
+        font-size: 15px;
+        padding: 12px;
     }
+    
     .stTextArea textarea:focus {
-        border-color: var(--accent-purple);
-        box-shadow: 0 0 0 1px var(--accent-purple);
+        border-color: #764ba2;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
     }
-
-    /* Hide default green success box */
-    .element-container:has(.stSuccess) {
-        display:none !important;
+    
+    /* Success/Info messages */
+    .stSuccess {
+        background-color: rgba(102, 126, 234, 0.1);
+        border-left: 4px solid #667eea;
+        border-radius: 8px;
+        color: #FFFFFF;
     }
-
+    
     /* Sidebar */
     [data-testid="stSidebar"] {
-        background-color: #09090b;
+        background-color: #1A1A1A;
     }
-    [data-testid="stSidebar"] * {
-        color: var(--text-main) !important;
-    }
-
-    /* Metrics */
-    [data-testid="stMetric"] {
-        background-color: transparent !important;
-    }
+    
+    /* Metrics - Purple color */
     [data-testid="stMetricValue"] {
-        color: var(--accent-purple) !important;
-        font-size: 22px;
+        font-size: 28px;
         font-weight: 600;
+        color: #667eea;
     }
+    
     [data-testid="stMetricLabel"] {
-        color: var(--text-muted) !important;
+        color: #AAAAAA;
     }
-
-    /* Expander styling */
+    
+    /* Expander */
     .streamlit-expanderHeader {
-        background: var(--bg-panel-soft) !important;
-        color: var(--text-main) !important;
+        background-color: #1A1A1A;
+        border-radius: 8px;
+        font-weight: 600;
+        color: #FFFFFF;
     }
-    .streamlit-expanderContent {
-        background: var(--bg-panel) !important;
+    
+    /* Answer box - Dark with purple accent */
+    .answer-box {
+        background-color: #1A1A1A;
+        padding: 24px;
+        border-radius: 12px;
+        border-left: 4px solid #667eea;
+        margin: 20px 0;
+        color: #FFFFFF;
+    }
+    
+    /* Source boxes */
+    .stExpander {
+        background-color: #1A1A1A;
+        border-radius: 8px;
+    }
+    
+    /* Progress bar */
+    .stProgress > div > div > div {
+        background-color: #667eea;
+    }
+    
+    /* Info boxes */
+    div[data-baseweb="notification"] {
+        background-color: #1A1A1A;
+        border-left: 4px solid #667eea;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# Header (title explicitly purple)
+# Initialize session state
+if 'query_history' not in st.session_state:
+    st.session_state.query_history = []
+
+# Header with purple gradient
 st.markdown("""
-<div style='text-align: center; padding: 22px;
-            border-radius: 12px; border:1px solid #27272a;'>
-    <h1 style='color:#b794f4; margin:0;'>RF Engineering AI Assistant</h1>
-    <p style='color:#e5e5e5; margin-top:8px;'>Instant answers from Apple RF patents & 5G research</p>
+<div style='text-align: center; padding: 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            border-radius: 16px; margin-bottom: 30px;'>
+    <h1 style='color: white; margin: 0; font-size: 42px;'>📡 RF Engineering AI Assistant</h1>
+    <p style='color: rgba(255,255,255,0.95); font-size: 18px; margin-top: 10px;'>
+        Instant answers from Apple patents and 5G research papers
+    </p>
 </div>
 """, unsafe_allow_html=True)
 
 # Initialize assistant
 @st.cache_resource(show_spinner=False)
 def load_assistant():
-    assistant = RFAssistant(documents_folder="documents", use_gpt=True)
+    assistant = RFAssistant(documents_folder="documents")
     assistant.load_documents()
     return assistant
 
-with st.spinner("Loading document embeddings..."):
-    assistant = load_assistant()
+with st.spinner(" Initializing AI Assistant..."):
+    try:
+        assistant = load_assistant()
+        st.success(" System ready! Loaded 81 document chunks from Apple RF patents and 5G research papers.")
+    except Exception as e:
+        st.error(f" Error loading documents: {str(e)}")
+        st.info(" Make sure you have PDF files in the 'documents' folder!")
+        st.stop()
 
 # Sidebar
 with st.sidebar:
-    st.markdown("### Quick Questions")
-    examples = [
-        "What causes antenna interference in 5G phones?",
-        "How does beamforming improve mmWave?",
-        "What are SAR compliance requirements?",
-        "How do you reduce mutual coupling?"
+    st.markdown("### 💡 Example Questions")
+    
+    example_questions = [
+        "What are common causes of antenna interference in multi-band systems?",
+        "How does beamforming improve 5G performance?",
+        "What are the key challenges in mmWave antenna design?",
+        "How do you reduce mutual coupling in MIMO antennas?",
+        "What materials are best for 5G antenna substrates?",
+        "Explain phased array antenna design considerations",
+        "What are SAR compliance requirements for mobile antennas?"
     ]
-    for i, q in enumerate(examples):
-        if st.button(q, key=f"ex_{i}"):
-            st.session_state.user_question = q
+    
+    for i, question in enumerate(example_questions):
+        if st.button(f"{question[:50]}...", key=f"example_{i}", use_container_width=True):
+            st.session_state.user_question = question
             st.rerun()
-
+    
     st.markdown("---")
-    st.metric("Docs Indexed", "5")
-    st.metric("Chunks", "81")
-    st.metric("Engine", "FAISS + GPT-4")
+    
+    # System info
+    st.markdown("### System Statistics")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("Documents", "5 PDFs")
+    with col2:
+        st.metric("Chunks", "81")
+    
+    st.metric("Search Engine", "FAISS + GPT-4")
+    
+    st.markdown("---")
+    
+    # Query history
+    if st.session_state.query_history:
+        st.markdown("### Recent Queries")
+        for i, (q, t) in enumerate(reversed(st.session_state.query_history[-5:])):
+            with st.expander(f"Query {len(st.session_state.query_history) - i}"):
+                st.text(q[:100] + "..." if len(q) > 100 else q)
+                st.caption(f"Asked at {t}")
+    
+    st.markdown("---")
+    
+    # Footer
+    st.markdown("""
+    <div style='text-align: center; padding: 20px;'>
+        <p style='color: #AAAAAA; font-size: 14px; margin: 5px 0;'><strong>Built by:</strong> Stuti Gaonkar</p>
+        <p style='color: #AAAAAA; font-size: 14px; margin: 5px 0;'><strong>For:</strong> Apple System RF Team</p>
+    </div>
+    """, unsafe_allow_html=True)
 
-st.markdown("### Ask Your Question")
+# Main interface
+st.markdown("###  Ask Your Question")
 
-# Input
-user_q = st.text_area(
+user_question = st.text_area(
     "",
-    value=st.session_state.get("user_question", ""),
+    value=st.session_state.get('user_question', ''),
     height=120,
-    placeholder="Example: How does beamforming improve 5G performance?"
+    placeholder="Example: What design considerations are important for compact mobile antennas in 5G devices?",
+    help="Ask any technical question about RF/antenna design"
 )
 
-colA, colB, _ = st.columns([1, 1, 4])
-search = colA.button("Search")
-if colB.button("Clear"):
-    st.session_state.user_question = ""
-    st.rerun()
+# Buttons
+col1, col2, col3 = st.columns([1, 1, 4])
+with col1:
+    search_button = st.button(" Get Answer", type="primary", use_container_width=True)
+with col2:
+    if st.button(" Clear", use_container_width=True):
+        st.session_state.user_question = ""
+        st.rerun()
 
-if search and user_q.strip():
-    st.session_state.user_question = user_q
-
-    t0 = time.time()
-    answer, sources = assistant.answer_question(user_q)
-    dt = time.time() - t0
-
-    # Metrics
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Time", f"{dt:.1f}s")
-    c2.metric("Sources", len(sources))
-    c3.metric("Relevance", f"{sum(s['score'] for s in sources)/len(sources):.0%}")
-    c4.metric("Chunks", "81")
-
-    st.markdown("### Answer")
-    st.markdown(f"""
-    <div style='background: var(--bg-panel); padding:18px; border-radius:8px;
-                border-left:3px solid var(--accent-purple); line-height:1.6;'>
-        {answer}
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown("### Citations")
-    for i, src in enumerate(sources, 1):
-        with st.expander(f"📄 {src['document']} ({src['score']:.0%})", expanded=False):
-            st.info(src['content'])
-
-    # Why It Matters – original gradient restored
-    st.markdown("---")
-    st.markdown("""
-    <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                padding: 30px; border-radius: 16px; text-align: center; margin-top: 40px;'>
-        <h3 style='color: #ffffff; margin-bottom: 20px;'>Why This Matters</h3>
-        <div style='display: flex; justify-content: space-around; margin-top: 20px; flex-wrap: wrap; gap: 16px;'>
-            <div>
-                <p style='font-size: 32px; font-weight: 700; color: #ffffff; margin: 0;'>~45 min</p>
-                <p style='color: rgba(255,255,255,0.85); margin-top: 5px;'>Manual Document Search</p>
-            </div>
-            <div style='font-size: 48px; color: #ffffff;'>→</div>
-            <div>
-                <p style='font-size: 32px; font-weight: 700; color: #34C759; margin: 0;'>~2 sec</p>
-                <p style='color: rgba(255,255,255,0.85); margin-top: 5px;'>AI-Powered Search</p>
-            </div>
+if search_button and user_question.strip():
+    # Record query
+    st.session_state.query_history.append((user_question, datetime.now().strftime("%H:%M:%S")))
+    
+    # Progress
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    
+    status_text.text(" Searching through 81 document chunks...")
+    progress_bar.progress(25)
+    time.sleep(0.3)
+    
+    start_time = time.time()
+    
+    try:
+        status_text.text(" Analyzing relevant content...")
+        progress_bar.progress(50)
+        
+        answer, sources = assistant.answer_question(user_question)
+        
+        status_text.text(" Generating response...")
+        progress_bar.progress(75)
+        time.sleep(0.2)
+        
+        end_time = time.time()
+        search_time = end_time - start_time
+        
+        progress_bar.progress(100)
+        status_text.text(" Complete!")
+        time.sleep(0.3)
+        
+        progress_bar.empty()
+        status_text.empty()
+        
+        # Metrics
+        metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
+        with metric_col1:
+            st.metric(" Search Time", f"{search_time:.2f}s")
+        with metric_col2:
+            st.metric(" Sources Found", len(sources))
+        with metric_col3:
+            st.metric(" Avg Relevance", f"{sum(s['score'] for s in sources) / len(sources):.0%}")
+        with metric_col4:
+            st.metric(" Chunks Searched", "81")
+        
+        st.markdown("---")
+        
+        # Answer - Dark box with purple accent
+        st.markdown("### 📝 Answer")
+        st.markdown(f"""
+        <div class='answer-box'>
+            {answer}
         </div>
-        <p style='color: rgba(255,255,255,0.9); margin-top: 20px; font-size: 14px;'>
-            <strong>Result:</strong> 99.9% time reduction • Instant insights • Cited sources
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
+        
+        st.markdown("---")
+        
+        # Sources
+        st.markdown("###  Sources & Citations")
+        st.caption("Click to expand each source and view the original text")
+        
+        for i, source in enumerate(sources, 1):
+            # Purple color scheme for relevance
+            if source['score'] > 0.5:
+                relevance_color = "#667eea"
+            elif source['score'] > 0.3:
+                relevance_color = "#9b59b6"
+            else:
+                relevance_color = "#6c5ce7"
+            
+            with st.expander(f" Source {i}: {source['document']} • Relevance: {source['score']:.0%}", expanded=(i==1)):
+                col1, col2 = st.columns([3, 1])
+                with col1:
+                    st.markdown(f"**Document:** `{source['document']}`")
+                with col2:
+                    st.markdown(f"""
+                    <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                                color: white; padding: 8px; border-radius: 8px; 
+                                text-align: center; font-weight: 600;'>
+                        {source['score']:.0%} Match
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                st.markdown("**Excerpt:**")
+                st.info(source['content'])
+        
+        # Export
+        st.markdown("---")
+        if st.button(" Export Results to Text File"):
+            export_text = f"""RF ENGINEERING AI ASSISTANT - QUERY RESULTS
+{'='*80}
 
-elif search:
-    st.warning("Please enter a question first.")
+QUESTION:
+{user_question}
+
+ANSWER:
+{answer}
+
+SOURCES:
+{'='*80}
+"""
+            for i, source in enumerate(sources, 1):
+                export_text += f"""
+Source {i}: {source['document']}
+Relevance: {source['score']:.0%}
+Content: {source['content']}
+{'-'*80}
+"""
+            
+            st.download_button(
+                label="💾 Download Results",
+                data=export_text,
+                file_name=f"rf_query_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+                mime="text/plain"
+            )
+        
+    except Exception as e:
+        progress_bar.empty()
+        status_text.empty()
+        st.error(f" Error: {str(e)}")
+        st.info(" Try rephrasing your question or check if the documents are loaded correctly.")
+
+elif search_button:
+    st.warning("Please enter a question first!")
+
+# Footer - Purple and Green only
+st.markdown("---")
+st.markdown("""
+<div style='background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); 
+            padding: 30px; border-radius: 16px; text-align: center; margin-top: 40px;
+            border: 1px solid #667eea;'>
+    <h3 style='color: #FFFFFF; margin-bottom: 20px;'> Why This Matters</h3>
+    <div style='display: flex; justify-content: space-around; margin-top: 20px;'>
+        <div>
+            <p style='font-size: 32px; font-weight: 700; color: #e74c3c; margin: 0;'>~45 min</p>
+            <p style='color: #AAAAAA; margin-top: 5px;'>Manual Document Search</p>
+        </div>
+        <div style='font-size: 48px; color: #667eea;'>→</div>
+        <div>
+            <p style='font-size: 32px; font-weight: 700; color: #2ecc71; margin: 0;'>~2 sec</p>
+            <p style='color: #AAAAAA; margin-top: 5px;'>AI-Powered Search</p>
+        </div>
+    </div>
+    <p style='color: #AAAAAA; margin-top: 20px; font-size: 14px;'>
+        <strong style='color: #667eea;'>Result:</strong> 99.9% time reduction • Instant insights • Cited sources
+    </p>
+</div>
+""", unsafe_allow_html=True)
