@@ -138,6 +138,9 @@ st.markdown(
 """,
     unsafe_allow_html=True,
 )
+# Version marker to confirm deployment
+st.caption("Build: RF Assistant v0.2 – uses GPT answer generation")
+
 
 # --------------------------------------------------------------------- #
 # Load assistant (cached)
