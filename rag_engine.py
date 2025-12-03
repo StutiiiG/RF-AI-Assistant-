@@ -199,25 +199,80 @@ Answer:"""
             print(f"Error calling GPT-4: {e}")
             return self._generate_basic_answer(question, sources)
 
-    def _generate_basic_answer(self, question: str, sources: List[dict]) -> str:
+    # def _generate_basic_answer(self, question: str, sources: List[dict]) -> str:
+    #     """
+    #     Fallback: Generate a readable, structured answer without GPT.
+    #     Focus on explaining the question, not on meta-info about retrieval.
+    #     """
+    #     key_points: List[str] = []
+
+    #     # Collect a few key sentences from each source
+    #     for source in sources:
+    #         text = source["content"].strip().replace("\n", " ")
+    #         sentences = re.split(r"(?<=[.!?])\s+", text)
+    #         snippet = " ".join(sentences[:2]).strip()  # first 1–2 sentences
+    #         if snippet:
+    #             key_points.append(snippet)
+
+    #     answer = "### Explanation\n\n"
+    #     answer += (
+    #         f"Here’s a concise explanation of **{question}** based on the "
+    #         "technical documents:\n\n"
+    #     )
+
+    #     if key_points:
+    #         answer += "**Key points:**\n\n"
+    #         for i, pt in enumerate(key_points, 1):
+    #             answer += f"{i}. {pt}\n\n"
+
+    #         summary_base = " ".join(key_points[:3])
+    #         answer += "### Short Summary\n\n"
+    #         answer += summary_base
+    #     else:
+    #         answer += (
+    #             "The retrieved documents did not contain enough clear "
+    #             "information to generate a detailed answer."
+    #         )
+
+    #     return answer
+
+        def _generate_basic_answer(self, question: str, sources: List[dict]) -> str:
         """
         Fallback: Generate a readable, structured answer without GPT.
-        Focus on explaining the question, not on meta-info about retrieval.
+        Focus on explaining the question, not dumping equations.
         """
         key_points: List[str] = []
 
-        # Collect a few key sentences from each source
+        def is_readable(sentence: str) -> bool:
+            """Heuristic to filter out equation-heavy or garbage sentences."""
+            s = sentence.strip()
+            if len(s) < 40 or len(s) > 260:
+                return False
+            # Too many symbols / digits → probably an equation or table
+            bad_chars = "[]{}=+/\\*<>_|"
+            symbol_count = sum(ch in bad_chars for ch in s)
+            digit_count = sum(ch.isdigit() for ch in s)
+            if symbol_count + digit_count > 0.3 * len(s):
+                return False
+            return any(c.isalpha() for c in s)
+
+        # Collect good sentences across all sources
         for source in sources:
             text = source["content"].strip().replace("\n", " ")
             sentences = re.split(r"(?<=[.!?])\s+", text)
-            snippet = " ".join(sentences[:2]).strip()  # first 1–2 sentences
-            if snippet:
-                key_points.append(snippet)
+
+            for sent in sentences:
+                if is_readable(sent):
+                    key_points.append(sent.strip())
+                if len(key_points) >= 4:
+                    break
+            if len(key_points) >= 4:
+                break
 
         answer = "### Explanation\n\n"
         answer += (
-            f"Here’s a concise explanation of **{question}** based on the "
-            "technical documents:\n\n"
+            f"Here’s a concise explanation of **{question}** "
+            "based on the technical documents:\n\n"
         )
 
         if key_points:
@@ -225,13 +280,15 @@ Answer:"""
             for i, pt in enumerate(key_points, 1):
                 answer += f"{i}. {pt}\n\n"
 
+            # Short summary = first 2–3 readable points stitched together
             summary_base = " ".join(key_points[:3])
             answer += "### Short Summary\n\n"
             answer += summary_base
         else:
             answer += (
-                "The retrieved documents did not contain enough clear "
-                "information to generate a detailed answer."
+                "The retrieved documents did not contain enough clear, "
+                "readable information to generate a detailed answer."
             )
 
         return answer
+
