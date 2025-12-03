@@ -3,10 +3,11 @@ import time
 from datetime import datetime
 
 import streamlit as st
+
 from rag_engine import RFAssistant
 
 # --------------------------------------------------------------------- #
-# OpenAI key
+# OpenAI key from Streamlit secrets
 # --------------------------------------------------------------------- #
 if "OPENAI_API_KEY" in st.secrets:
     os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
@@ -138,9 +139,6 @@ st.markdown(
 """,
     unsafe_allow_html=True,
 )
-# Version marker to confirm deployment
-st.caption("Build: RF Assistant v0.2 – uses GPT answer generation")
-
 
 # --------------------------------------------------------------------- #
 # Load assistant (cached)
@@ -153,13 +151,18 @@ def load_assistant() -> RFAssistant:
 
 
 with st.spinner(" Initializing AI Assistant..."):
-    try:
-        assistant = load_assistant()
-    except Exception as e:
-        st.error("The AI engine failed to initialize on the server.")
-        st.code(str(e))
-        st.info("Check that the 'documents' folder and RF PDF files exist in the repo.")
-        st.stop()
+    assistant = load_assistant()
+
+# Build/version + mode indicator
+st.caption(
+    "Build: RF Assistant v0.2 – uses GPT answer generation • "
+    + (
+        "Mode: GPT answers ENABLED ✅"
+        if getattr(assistant, "use_gpt", False)
+        and getattr(assistant, "openai_client", None)
+        else "Mode: retrieval-only (no GPT key) ❌"
+    )
+)
 
 # --------------------------------------------------------------------- #
 # Sidebar
@@ -178,7 +181,9 @@ with st.sidebar:
     ]
 
     for i, question in enumerate(example_questions):
-        if st.button(f"{question[:50]}...", key=f"example_{i}", use_container_width=True):
+        if st.button(
+            f"{question[:50]}...", key=f"example_{i}", use_container_width=True
+        ):
             st.session_state.user_question = question
             st.rerun()
 
@@ -271,10 +276,14 @@ if search_button and user_question.strip():
         with metric_col2:
             st.metric("Sources Found", len(sources))
         with metric_col3:
-            avg_rel = sum(s["score"] for s in sources) / max(len(sources), 1)
+            avg_rel = (
+                sum(s["score"] for s in sources) / max(len(sources), 1)
+                if sources
+                else 0
+            )
             st.metric("Avg Relevance", f"{avg_rel:.0%}")
         with metric_col4:
-            st.metric("Chunks Searched", "81")
+            st.metric("Chunks Searched", str(getattr(assistant.index, "ntotal", "–")))
 
         st.markdown("---")
 
@@ -297,15 +306,9 @@ if search_button and user_question.strip():
 
         for i, source in enumerate(sources, 1):
             score = source["score"]
-            if score > 0.5:
-                relevance_color = "#667eea"
-            elif score > 0.3:
-                relevance_color = "#9b59b6"
-            else:
-                relevance_color = "#6c5ce7"
-
             with st.expander(
-                f"Source {i}: {source['document']} • Relevance: {score:.0%}", expanded=False
+                f"Source {i}: {source['document']} • Relevance: {score:.0%}",
+                expanded=False,
             ):
                 col_s1, col_s2 = st.columns([3, 1])
                 with col_s1:
@@ -327,6 +330,7 @@ if search_button and user_question.strip():
 
         st.markdown("---")
 
+        # Export button
         if st.button("Export Results to Text File"):
             export_text = f"""RF ENGINEERING AI ASSISTANT - QUERY RESULTS
 {'='*80}
