@@ -271,11 +271,9 @@ Relevant technical excerpts from internal patents / RF papers:
 
 Write your answer in **Markdown** with this exact structure:
 
-### Answer
-
 Start with a short overview paragraph (2–4 sentences) explaining the idea in clear language for an RF engineer.
 
-#### Key technical points
+#### Key points
 Then give 4–7 numbered bullets. For each bullet:
 - Start with a short bold title (e.g. **Array spacing and grating lobes**).
 - Add 2–3 sentences with concrete technical details (frequencies, bandwidths, materials, array geometry, feed network, SAR / regulatory constraints, etc.).
