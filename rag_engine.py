@@ -44,13 +44,13 @@ class RFAssistant:
 
                 api_key = os.getenv("OPENAI_API_KEY")
                 if not api_key:
-                    print("[RF Assistant] ❌ No OPENAI_API_KEY, disabling GPT answers")
+                    print("[RF Assistant]  No OPENAI_API_KEY, disabling GPT answers")
                     self.use_gpt = False
                 else:
                     self.openai_client = OpenAI(api_key=api_key)
-                    print("[RF Assistant] ✅ GPT answers ENABLED")
+                    print("[RF Assistant]  GPT answers ENABLED")
             except Exception as e:
-                print(f"[RF Assistant] ❌ Could not init OpenAI client: {e}")
+                print(f"[RF Assistant]  Could not init OpenAI client: {e}")
                 self.use_gpt = False
                 self.openai_client = None
 
@@ -293,8 +293,8 @@ Constraints:
         try:
             response = self.openai_client.chat.completions.create(
                 # for more speed/cost efficiency, switch to "gpt-4o-mini"
-                model="gpt-4o",
-                temperature=0.3,
+                model="gpt-4o-mini",
+                temperature=0.35,
                 max_tokens=650,
                 messages=[
                     {
