@@ -153,17 +153,6 @@ def load_assistant() -> RFAssistant:
 with st.spinner(" Initializing AI Assistant..."):
     assistant = load_assistant()
 
-# Build/version + mode indicator
-st.caption(
-    "Build: RF Assistant v0.2 – uses GPT answer generation • "
-    + (
-        "Mode: GPT answers ENABLED ✅"
-        if getattr(assistant, "use_gpt", False)
-        and getattr(assistant, "openai_client", None)
-        else "Mode: retrieval-only (no GPT key) ❌"
-    )
-)
-
 # --------------------------------------------------------------------- #
 # Sidebar
 # --------------------------------------------------------------------- #
