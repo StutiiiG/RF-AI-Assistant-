@@ -372,7 +372,7 @@ st.markdown(
         </div>
         <div style='font-size: 48px; color: #667eea;'>→</div>
         <div>
-            <p style='font-size: 32px; font-weight: 700; color: #2ecc71; margin: 0;'>~2 sec</p>
+            <p style='font-size: 32px; font-weight: 700; color: #2ecc71; margin: 0;'>~10 sec</p>
             <p style='color: #AAAAAA; margin-top: 5px;'>AI-Powered Search</p>
         </div>
     </div>
