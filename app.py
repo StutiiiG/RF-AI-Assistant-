@@ -193,9 +193,6 @@ with st.sidebar:
         <p style='color: #AAAAAA; font-size: 14px; margin: 5px 0;'>
             <strong>Built by:</strong> Stuti Gaonkar
         </p>
-        <p style='color: #AAAAAA; font-size: 14px; margin: 5px 0;'>
-            <strong>For:</strong> Apple System RF Team
-        </p>
     </div>
     """,
         unsafe_allow_html=True,
@@ -367,7 +364,7 @@ st.markdown(
 <div style='background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
             padding: 30px; border-radius: 16px; text-align: center; margin-top: 40px;
             border: 1px solid #667eea;'>
-    <h3 style='color: #FFFFFF; margin-bottom: 20px;'>⚡ Why This Matters</h3>
+    <h3 style='color: #FFFFFF; margin-bottom: 20px;'> Why This Matters</h3>
     <div style='display: flex; justify-content: space-around; margin-top: 20px;'>
         <div>
             <p style='font-size: 32px; font-weight: 700; color: #e74c3c; margin: 0;'>~45 min</p>
