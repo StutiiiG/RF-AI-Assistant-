@@ -4,6 +4,8 @@ An intelligent AI assistant that searches through Apple RF patents and 5G resear
 
 **Tech Stack:** Streamlit + GPT-4 + FAISS + Sentence Transformers
 
+Check Demo here: https://rfchatbot.streamlit.app
+
 
 ## Features
 
